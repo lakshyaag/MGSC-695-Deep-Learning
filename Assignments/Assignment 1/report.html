@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Assignment 1&colon; Image Classification using Convolutional Neural Networks</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="assignment-1-image-classification-using-convolutional-neural-networks">Assignment 1: Image Classification using Convolutional Neural Networks</h1>
+<p>Submitted by: Lakshya Prakash Agarwal (261149449)</p>
+<h2 id="introduction">Introduction</h2>
+<p>In this report, we aim to develop a Convolutional Neural Network (CNN) using the ResNet architecture to classify images from the CIFAR-10 dataset. The CIFAR-10 dataset consists of 60,000 32x32 color images in 10 different classes, with 50,000 training images and 10,000 test images. The primary goal is to preprocess the data, implement the ResNet architecture, train the model, and evaluate its performance using various metrics.</p>
+<h2 id="load-and-preprocess-data">Load and Preprocess Data</h2>
+<h3 id="loading-the-dataset">Loading the Dataset</h3>
+<p>The CIFAR-10 dataset is loaded using the <code>torchvision.datasets</code> module. The dataset is split into training, validation, and test sets. The training set is further split to create a validation set without data leakage.</p>
+<pre><code class="language-python"><span class="hljs-keyword">from</span> torchvision.datasets <span class="hljs-keyword">import</span> CIFAR10
+
+<span class="hljs-comment"># Load the CIFAR-10 dataset</span>
+train_dataset = CIFAR10(DATA_DIR, train=<span class="hljs-literal">True</span>, download=<span class="hljs-literal">True</span>)
+val_dataset = CIFAR10(DATA_DIR, train=<span class="hljs-literal">True</span>, download=<span class="hljs-literal">True</span>)
+test_dataset = CIFAR10(DATA_DIR, train=<span class="hljs-literal">False</span>, download=<span class="hljs-literal">True</span>)
+</code></pre>
+<h3 id="data-preprocessing">Data Preprocessing</h3>
+<p>Data preprocessing involves normalizing the images and applying data augmentation techniques such as random horizontal flipping and random cropping. The mean and standard deviation of the dataset are calculated for normalization.</p>
+<pre><code class="language-python"><span class="hljs-keyword">from</span> torchvision <span class="hljs-keyword">import</span> transforms
+
+<span class="hljs-comment"># Calculate mean and standard deviation</span>
+DATA_MEANS = (train_dataset.data / <span class="hljs-number">255.0</span>).mean(axis=(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>))
+DATA_STD = (train_dataset.data / <span class="hljs-number">255.0</span>).std(axis=(<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>))
+
+<span class="hljs-comment"># Define transformations</span>
+train_transform = transforms.Compose([
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomResizedCrop((<span class="hljs-number">32</span>, <span class="hljs-number">32</span>), scale=(<span class="hljs-number">0.8</span>, <span class="hljs-number">1.0</span>), ratio=(<span class="hljs-number">0.9</span>, <span class="hljs-number">1.1</span>)),
+    transforms.ToTensor(),
+    transforms.Normalize(DATA_MEANS, DATA_STD),
+])
+
+test_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(DATA_MEANS, DATA_STD),
+])
+</code></pre>
+<h3 id="data-loaders">Data Loaders</h3>
+<p>Data loaders are created for the training, validation, and test sets to facilitate batch processing.</p>
+<pre><code class="language-python"><span class="hljs-keyword">from</span> torch.utils.data <span class="hljs-keyword">import</span> DataLoader
+
+BATCH_SIZE = <span class="hljs-number">128</span>
+
+<span class="hljs-comment"># Create data loaders</span>
+train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=<span class="hljs-literal">True</span>, num_workers=<span class="hljs-number">4</span>, pin_memory=<span class="hljs-literal">True</span>, drop_last=<span class="hljs-literal">True</span>, persistent_workers=<span class="hljs-literal">True</span>)
+...
+</code></pre>
+<h2 id="resnet-cnn-architecture">ResNet: CNN Architecture</h2>
+<p>The ResNet architecture is implemented using PyTorch. ResNet is known for its residual learning framework, which helps in training very deep networks by addressing the vanishing gradient problem.</p>
+<p>The convolutional neural network architecture used in this notebook is inspired by the ResNet architecture from the paper <a href="https://arxiv.org/pdf/1512.03385">&quot;Deep Residual Learning for Image Recognition&quot; by He et al. (2015)</a>.</p>
+<p>The ResNet architecture consists of a series of residual blocks, which are composed of convolutional layers, batch normalization, and ReLU activation functions. The residual blocks are connected by skip connections, which allow the network to learn residual functions instead of the original mapping. This helps to mitigate the vanishing gradient problem and enables the training of very deep networks. At the end of the network, a global average pooling layer and a fully connected layer are used to produce the final output that represents the class probabilities.</p>
+<p>In essence, instead of learning the desired output, the network learns the residual between the desired output and the current output.</p>
+<h3 id="architecture">Architecture</h3>
+<p>The ResNet architecture used in this notebook consists of the following components:</p>
+<ul>
+<li>Initial convolutional layer with 16 output channels and kernel size 1x1, followed by batch normalization</li>
+<li>A series of residual blocks with feature map sizes of {32, 16, 8}</li>
+<li>A final output layer that consists of global average pooling and a fully connected layer with 10 output units (one for each class)</li>
+</ul>
+<h3 id="residual-block">Residual block</h3>
+<p>The residual block consists of the following components:</p>
+<ul>
+<li>Convolutional layer with kernel size 3x3 and padding 1, with an optional stride of 2 for downsampling</li>
+<li>Batch normalization</li>
+<li>ReLU activation function</li>
+<li>Convolutional layer with kernel size 3x3 and padding 1 and a stride of 1</li>
+<li>Batch normalization</li>
+<li>Skip connection to add the input to the output of the second convolutional layer</li>
+</ul>
+<p>The ResNet model is implemented using PyTorch and is defined in the <code>ResNet</code> class.</p>
+<h2 id="training-and-validation">Training and Validation</h2>
+<p>To train the ResNet model, PyTorch Lightning is used to simplify the training process. PyTorch Lightning provides a high-level interface for PyTorch that abstracts away the training loop, validation loop, and other boilerplate code. This makes it easier to train models and experiment with different architectures and hyperparameters.</p>
+<p>The training process consists of the following steps:</p>
+<ul>
+<li>Initialize the ResNet model with the specified hyperparameters (e.g., number of residual blocks, feature map sizes, etc.)</li>
+<li>Define the loss function (cross-entropy loss)</li>
+<li>Define the optimizer, associated hyperparameters (e.g., learning rate, weight decay) and learning rate scheduler</li>
+<li>Log the training, validation, and test accuracy using TensorBoard</li>
+<li>Log the validation images and predictions using TensorBoard for visualization</li>
+<li>Save the best model based on the validation accuracy</li>
+<li>Monitor the learning rate and log it using TensorBoard</li>
+</ul>
+<p>The model is trained with 32-layers, a batch size of 128, a learning rate of 0.1, a weight decay of 1e-4, a momentum of 0.9 and a learning rate scheduler that reduces the learning rate on a plateau. The model is trained for 50 epochs, and the best model based on the validation accuracy is saved. The hyperparameters are chosen based on the original paper's recommendations for training ResNet on CIFAR-10.</p>
+<h2 id="evaluation">Evaluation</h2>
+<p>The ResNet-32 model is evaluated on the validation and test sets to measure its performance. The accuracy on the test set is reported as the final evaluation metric.</p>
+<h3 id="results">Results</h3>
+<p>The results of the model evaluation are summarized in the following table:</p>
+<table>
+<thead>
+<tr>
+<th>Dataset</th>
+<th>Accuracy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Validation</td>
+<td>0.8716</td>
+</tr>
+<tr>
+<td>Test</td>
+<td>0.8677</td>
+</tr>
+</tbody>
+</table>
+<h2 id="conclusion">Conclusion</h2>
+<p>In this report, we developed a Convolutional Neural Network using the ResNet architecture to classify images from the CIFAR-10 dataset. The model achieved an accuracy of 87.16% on the validation set and 86.77% on the test set. The ResNet architecture, with its residual learning framework, helped in training a deep network and achieving good performance on the image classification task. The model can be further improved by adding more layers, and using data augmentation techniques.</p>
+
+            
+            
+        </body>
+        </html>
